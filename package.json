@@ -40,6 +40,9 @@
     }
   },
   "homepage": "https://github.com/alexeylevin1atgmailcom/llm-bouncer#readme",
+  "bugs": {
+    "url": "https://github.com/alexeylevin1atgmailcom/llm-bouncer/issues"
+  },
   "publishConfig": {
     "access": "public"
   },

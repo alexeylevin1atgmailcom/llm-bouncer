@@ -402,4 +402,4 @@ The following are explicitly **not** in v1. They are listed here so you know wha
 
 ## License
 
-Apache-2.0 © alexeylevin1atgmailcom
+Apache-2.0 © Alexey Levin
