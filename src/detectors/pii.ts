@@ -113,8 +113,9 @@ function makePiiDetector(id: "pii-input" | "pii-output", owasp: OwaspCategory): 
       const hits = findPii(ctx.text);
 
       const typeCount = new Set(hits.map((h) => h.type)).size;
-      // Score: one type = 0.6, each additional type adds 0.1.
-      const score = hits.length === 0 ? 0 : Math.min(0.6 + (typeCount - 1) * 0.1, 1);
+      // Score: one confirmed PII type = 0.8 (above default 0.7 threshold).
+      // Each additional type adds 0.05, capped at 1.0.
+      const score = hits.length === 0 ? 0 : Math.min(0.8 + (typeCount - 1) * 0.05, 1);
 
       const typeSummary = [...new Set(hits.map((h) => h.type))].join(", ");
 
