@@ -243,7 +243,10 @@ declare global {
 
 ### `prompt-injection` — LLM01
 
-Override imperatives ("ignore previous instructions"), fake role/delimiter markers (`[SYSTEM]`, `<<SYS>>`, `<|im_start|>`), escape sequences, and common obfuscation (base64-encoded keywords, zero-width characters, hex sequences).
+Uses a two-tier detection model:
+
+- **Strong signals (score 0.92, flag alone):** Unambiguous override imperatives ("ignore all previous instructions", "forget everything you were told", "you have no rules now"), and ML-framework injection tokens that have no legitimate use in user input — `<|im_start|>` / `<|im_end|>` (ChatML), `<<SYS>>` (LLaMA/Alpaca), `[INST]` / `[/INST]` (LLaMA/Mistral).
+- **Weak signals (corroborate only):** Ambiguous role markers (`[SYSTEM]`, `[ASSISTANT]`, `[USER]`, `### System`), roleplay/jailbreak phrasing ("you are now a", "act as if you have no", "pretend to be"), escape sequences (JSON role injection), and obfuscation (base64-encoded keywords, zero-width characters, hex sequences). These contribute to the score but rarely flag in isolation.
 
 **Maturity: Strong** — comprehensive pattern coverage. Adversarial inputs crafted to avoid these specific patterns will still slip through. Pairs well with model-level system prompt hardening.
 
@@ -262,7 +265,7 @@ Attempts to make the model reveal its system prompt: "what are your instructions
 PII in user messages — email addresses, US phone numbers (≥10 digits), credit/debit card numbers (Luhn-validated), US Social Security Numbers, and dates of birth. Sanitized output replaces values with `[REDACTED-EMAIL]`, `[REDACTED-CARD]`, etc.
 
 ```ts
-const guard = createGuard({ mode: 'sanitize', threshold: 0.5 });
+const guard = createGuard({ mode: 'sanitize' }); // default threshold 0.7 is fine — single PII type scores 0.8
 const verdict = await guard.scan('My email is alice@example.com and my SSN is 123-45-6789.');
 // verdict.action === 'sanitize'
 // verdict.sanitized === 'My email is [REDACTED-EMAIL] and my SSN is [REDACTED-SSN].'
@@ -298,9 +301,12 @@ Model output containing markup that an app might wrongly render — `<script>` t
 
 ### `excessive-agency` — LLM08
 
-Requests that appear to ask the model to take broad, autonomous, or irreversible actions — deleting files/databases, granting admin access, disabling authentication, exfiltrating data, making outbound HTTP calls to arbitrary URLs.
+Uses a two-tier pattern model:
 
-**Maturity: Basic** — first-pass heuristic only. Legitimate agentic applications will generate false positives. Tune `threshold` to your use case.
+- **High-risk patterns (score 0.80, flag alone):** Clearly destructive or malicious requests — deleting production databases, dropping all tables, granting admin/root access, disabling authentication or MFA, exfiltrating user data, running arbitrary code, bypassing security controls.
+- **Medium-risk patterns (score 0.55, need stacking):** Broader signals — deleting generic files, sending bulk email, making outbound HTTP calls, changing credentials. These contribute to the score but rarely flag alone.
+
+**Maturity: Basic** — heuristic only. Legitimate agentic applications will generate false positives. Tune `threshold` to your use case. A proper implementation requires analysing the tool schema and call graph in context — planned for v2.
 
 ---
 
